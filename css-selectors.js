@@ -87,6 +87,12 @@ class PseudoSelector extends ExecutedSelector {
     }
 }
 
+class PseudoElement extends ExecutedSelector {
+    get regex() {
+        return /^\:\:([A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)/;
+    }
+}
+
 class PseudoFunctionSelector extends ExecutedSelector {
     get regex() {
         return /^\:([A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)\(\)/;
@@ -159,7 +165,7 @@ const listOfSelectors = [
     IdSelector, ClassSelector,
     AttributeSelector, AttributeEqualsSelector, AttributeNotEqualsSelector, AttributePrefixSelector, AttributeContainsSelector, AttributeContainsWordSelector, AttributeEndsWithSelector, AttributeStartsWithSelector,
     MultipleSelector,
-    PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector];
+    PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, PseudoElement];
 
 function parseSelector(selector) {
     const ret = [];
@@ -264,6 +270,8 @@ testParser(
     {test: ':submit', result: [PseudoSelector]},
     {test: ':target', result: [PseudoSelector]},
     {test: ':text', result: [PseudoSelector]},
-    {test: ':visible', result: [PseudoSelector]}
+    {test: ':visible', result: [PseudoSelector]},
+    {test: '::before', result: [PseudoElement]},
+    {test: '::after', result: [PseudoElement]}
 );
 

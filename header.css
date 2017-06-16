@@ -1,0 +1,23 @@
+header>nav.menu>ul.menuList {
+    margin: 0;
+    padding: 0;
+    display: inline;
+}
+
+.menuList>li.liHome>a.aHome[href="./"] {
+    content: 'Home';
+}
+
+.menuList>li.liContactUs>a.aContactUs[href="./contact-us.html"] {
+    content: 'Contact Us';
+}
+
+.menuList>li.liAboutUs>a.aAboutUs[href="./about-us.html"] {
+    content: 'About Us';
+}
+
+.menuList>li {
+    list-style: none;
+    display: inline;
+    margin-left: 4px;
+}
