@@ -103,7 +103,6 @@ function make_missing_elements(selector) {
                 // });
                 while (newElements.length < signedOffsetNum) {
                     const importedNode = document.importNode(newElement, true);
-                    importedNode.id = `inode${newElements.length}`;
                     newElements.push(importedNode);
                 }
             }

@@ -135,7 +135,6 @@ function make_missing_elements(selector: Elemental): Array<HTMLElement> {
                 // });
                 while(newElements.length < signedOffsetNum) {
                     const importedNode = document.importNode(newElement, true);
-                    importedNode.id = `inode${newElements.length}`;
                     newElements.push(importedNode);
                 }
             } else {
