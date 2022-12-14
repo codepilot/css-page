@@ -95,60 +95,67 @@ function safeQSA(selector:string):Element[] | null {
     }
 }
 
-function CssToHtml() {
-    //console.log('loaded');
-    Array.prototype.forEach.call(document.styleSheets, (styleSheet, _styleSheetIndex)=> {
-        Array.prototype.forEach.call(styleSheet.cssRules, (cssRule, _cssRuleIndex)=> {
-            let previousSelector: Array<Element>;
-            groupParseSelector(cssRule.selectorText).forEach((selector, si, parsed) => {
-                const partialArray = parsed.slice(0, si + 1);
-                const partial = parsed.slice(0, si + 1).join('');
-                //try {
-                    let selected = safeQSA(partial);
-                    if(selected === null) { return; }
-                    if(selected.length === 0) {
-                        //console.log('need to create', selector, 'in', previousSelector);
-                        if(selector instanceof Elemental) {
-                            //console.log('elemental selector', selector);
-                            let newElement: HTMLElement;
-                            selector.args.forEach((elementalPart:Selector) => {
-                                if(elementalPart instanceof TagSelector) {
-                                    newElement = document.createElement(`${elementalPart}`);
-                                    //selected = newElement;
-                                } else if(elementalPart instanceof IdSelector) {
-                                    newElement.id = elementalPart.slice(1);
-                                } else if(elementalPart instanceof ClassSelector) {
-                                    newElement.classList.add(elementalPart.slice(1));
-                                } else if(elementalPart instanceof AttributeEqualsSelector) {
-                                    newElement.setAttribute(elementalPart.executed[1], elementalPart.executed[2]);
-                                } else {
-                                    console.log('unhandled', elementalPart);
-                                }
-                            });
-                            //console.log({previousSelector, newElement});
-                            console.assert(previousSelector !== undefined, {previousSelector});
-                            selected = Array.from(previousSelector, (psN:Element)=> psN.appendChild(document.importNode(newElement, true)));
-                        }
-                    } else {
-                        //console.log({selector, partialArray, partial, selected});                        
-                    }
-                    previousSelector = selected;
-               // } catch( err ) {
-                    //console.log('errA', err);
-               // }
-            });
-            try {
-                if(cssRule.style.content.length) {
-                    //console.log('content', cssRule.style.content, previousSelector, cssRule.style);
-                    if(previousSelector!!) {
-                        previousSelector.forEach((psN:Element) => psN.innerHTML = JSON.parse(cssRule.style.content));
-                    }
+function make_missing_element(selector: Elemental): HTMLElement {
+    const firstSelector = selector.args.shift();
+    if(firstSelector === undefined) throw new TypeError('firstSelector undefined');
+    if(!(firstSelector instanceof TagSelector)) throw new TypeError(`!(firstSelector instanceof TagSelector)`);
+    const firstElementalPart: TagSelector = firstSelector;
+    const newElement: HTMLElement = document.createElement(`${firstElementalPart}`);
+    for(const elementalPart of selector.args) {
+        if(elementalPart instanceof IdSelector) {
+            newElement.id = elementalPart.slice(1);
+        } else if(elementalPart instanceof ClassSelector) {
+            newElement.classList.add(elementalPart.slice(1));
+        } else if(elementalPart instanceof AttributeEqualsSelector) {
+            newElement.setAttribute(elementalPart.executed[1], elementalPart.executed[2]);
+        } else {
+            console.log('unhandled', elementalPart);
+        }
+    }
+    return newElement;
+}
+
+function for_each_cssRule(cssRule: CSSStyleRule, _cssRuleIndex: number): void {
+    let previousSelector: Array<Element> | undefined;
+    const parsed = groupParseSelector(cssRule.selectorText);
+    for(const [si, selector] of parsed.entries()) {
+        const partialArray = parsed.slice(0, si + 1);
+        const partial = parsed.slice(0, si + 1).join('');
+        //try {
+            let selected = safeQSA(partial);
+            if(selected === null) { continue; }
+            if(selected.length === 0) {
+                //console.log('need to create', selector, 'in', previousSelector);
+                if(selector instanceof Elemental) {
+                    if(previousSelector === undefined) throw new TypeError('creating an element requires previousSelector to be defined');
+                    selected = previousSelector.map((psN:Element)=> psN.appendChild(document.importNode(make_missing_element(selector), true)));
                 }
-            } catch(err) {
-                //console.log('errB', err);
+            } else {
+                //console.log({selector, partialArray, partial, selected});                        
             }
-        })
-    });
+            previousSelector = selected;
+       // } catch( err ) {
+            //console.log('errA', err);
+       // }
+    }
+
+    try {
+        if(cssRule.style.content.length) {
+            //console.log('content', cssRule.style.content, previousSelector, cssRule.style);
+            previousSelector?.forEach((psN:Element) => psN.innerHTML = JSON.parse(cssRule.style.content));
+        }
+    } catch(err) {
+        //console.log('errB', err);
+    }
+}
+
+function for_each_styleSheet(styleSheet: CSSStyleSheet, _styleSheetIndex: number): void {
+    Array.prototype.forEach.call(styleSheet.cssRules, for_each_cssRule);
+}
+
+function CssToHtml(): void {
+    //console.log('loaded');
+    Array.prototype.forEach.call(document.styleSheets, for_each_styleSheet);
 }
 
 /* document.addEventListener("DOMContentLoaded", CssToHtml); */
