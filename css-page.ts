@@ -17,6 +17,7 @@ import {
     NextSiblingsSelector,
     parseSelector,
     PseudoFunction1ArgQuotedSelector,
+    PseudoFunction1ArgEquationSelector,
     PseudoFunction1ArgSelector,
     PseudoFunctionSelector,
     PseudoSelector,
@@ -40,6 +41,7 @@ function getKindOfSelector(selector: Selector) {
         case selector instanceof PseudoSelector:
         case selector instanceof PseudoFunctionSelector:
         case selector instanceof PseudoFunction1ArgQuotedSelector:
+        case selector instanceof PseudoFunction1ArgEquationSelector:
         case selector instanceof PseudoFunction1ArgSelector:
         case selector instanceof AttributeSelector:
         case selector instanceof AttributeEqualsSelector:
@@ -95,12 +97,13 @@ function safeQSA(selector:string):Element[] | null {
     }
 }
 
-function make_missing_element(selector: Elemental): HTMLElement {
+function make_missing_elements(selector: Elemental): Array<HTMLElement> {
     const firstSelector = selector.args.shift();
     if(firstSelector === undefined) throw new TypeError('firstSelector undefined');
     if(!(firstSelector instanceof TagSelector)) throw new TypeError(`!(firstSelector instanceof TagSelector)`);
     const firstElementalPart: TagSelector = firstSelector;
     const newElement: HTMLElement = document.createElement(`${firstElementalPart}`);
+    const newElements = [];
     for(const elementalPart of selector.args) {
         if(elementalPart instanceof IdSelector) {
             newElement.id = elementalPart.slice(1);
@@ -108,11 +111,48 @@ function make_missing_element(selector: Elemental): HTMLElement {
             newElement.classList.add(elementalPart.slice(1));
         } else if(elementalPart instanceof AttributeEqualsSelector) {
             newElement.setAttribute(elementalPart.executed[1], elementalPart.executed[2]);
+        } else if(elementalPart instanceof PseudoFunction1ArgEquationSelector) {
+            const {
+                func,
+                offset,
+                offsetSign,
+                scalar,
+                scalarSign,
+                signedOffset,
+                signedScalar,
+                varname,
+            }= elementalPart.executed.groups;
+
+            const signedOffsetNum = parseInt(((signedOffset === '-')?'-1':signedOffset), 10);
+            const signedScalarNum = parseInt(((signedScalar === '-')?'-1':signedScalar), 10);
+
+            if(func === 'nth-last-child' && varname === 'n' && (!Number.isNaN(signedOffsetNum)) && (!Number.isNaN(signedScalarNum)) && signedScalarNum === -1) {
+                // console.log({
+                //     func,
+                //     signedOffsetNum,
+                //     // signedScalarNum,
+                //     varname,
+                // });
+                while(newElements.length < signedOffsetNum) {
+                    const importedNode = document.importNode(newElement, true);
+                    importedNode.id = `inode${newElements.length}`;
+                    newElements.push(importedNode);
+                }
+            } else {
+                console.log('unhandled', elementalPart.executed[0], {
+                    func,
+                    signedOffset,
+                    signedScalar,
+                    varname,
+                });
+            }
+        } else if(elementalPart instanceof PseudoFunction1ArgSelector) {
+            console.log('unhandled', elementalPart);
         } else {
             console.log('unhandled', elementalPart);
         }
     }
-    return newElement;
+    return newElements.length > 0?newElements:[newElement];
 }
 
 function for_each_cssRule(cssRule: CSSStyleRule, _cssRuleIndex: number): void {
@@ -128,7 +168,19 @@ function for_each_cssRule(cssRule: CSSStyleRule, _cssRuleIndex: number): void {
                 //console.log('need to create', selector, 'in', previousSelector);
                 if(selector instanceof Elemental) {
                     if(previousSelector === undefined) throw new TypeError('creating an element requires previousSelector to be defined');
-                    selected = previousSelector.map((psN:Element)=> psN.appendChild(document.importNode(make_missing_element(selector), true)));
+                    const missing_elements = make_missing_elements(selector);
+                    const new_elements: Array<HTMLElement> = [];
+                    for(const psN of previousSelector) {
+                        const importedNodes = [];
+                        for(const missing_element of missing_elements) {
+                            const importedNode = document.importNode(missing_element, true);
+                            importedNodes.push(importedNode);
+                        }
+                        psN.append.apply(psN, importedNodes);
+                        new_elements.push.apply(new_elements, importedNodes);
+                    }
+                    // previousSelector.forEach((psN:Element)=> psN.append.apply(psN, missing_elements.map((missing_element)=> document.importNode(missing_element, true))));
+                    selected = new_elements;
                 }
             } else {
                 //console.log({selector, partialArray, partial, selected});                        

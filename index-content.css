@@ -1,3 +1,11 @@
 .main>div#content {
     content: 'index.html page';
 }
+
+.main>ol>li:nth-last-child(-n+10)>a[href="/"] {
+    content: 'test';
+}
+
+.main>table>tbody>tr:nth-last-child(-n+10)>td:nth-last-child(-n+5)>p:nth-last-child(-n+3) {
+    content: 'test';
+}

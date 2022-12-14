@@ -113,7 +113,13 @@ export class PseudoFunction1ArgQuotedSelector extends ExecutedSelector {
 
 export class PseudoFunction1ArgSelector extends ExecutedSelector {
     override get regex() {
-        return /^\:([A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)\(([^)]+)\)/;
+        return /^\:(?<func>[A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)\((?<arg>[^)]+)\)/;
+    }
+}
+
+export class PseudoFunction1ArgEquationSelector extends ExecutedSelector {
+    override get regex() {
+        return /^\:(?<func>[A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)\(((?<signedScalar>(?<scalarSign>[+-]?)(?<scalar>\d*))?(?<varname>[a-z]+)?(?<signedOffset>(?<offsetSign>[+-])(?<offset>\d*))?)\)/;
     }
 }
 
@@ -170,7 +176,7 @@ export const listOfSelectors:Array<typeof Selector> = [
     IdSelector, ClassSelector,
     AttributeSelector, AttributeEqualsSelector, AttributeNotEqualsSelector, AttributePrefixSelector, AttributeContainsSelector, AttributeContainsWordSelector, AttributeEndsWithSelector, AttributeStartsWithSelector,
     MultipleSelector,
-    PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, PseudoElement,
+    PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgEquationSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, PseudoElement,
 ];
 
 interface SelectorInfo { curSelectorClass: typeof Selector; curSelector: Selector; tagResult: string; remainingStringReplacement: string; };
@@ -207,11 +213,15 @@ export function parseSelector(selector:string): Array<Selector> {
     //console.log({ret});
     return ret;
 }
-parseSelector('body>svg');
+
+// console.log(parseSelector('body>svg'));
 
 function testParser(...tests: Array<{test: string, result: Array<any>}>): void {
     for(const {test, result} of tests) {
         const parsed = parseSelector(test);
+        // console.log(test, parsed, result[0], (new result[0]).exec(test));
+        console.assert(result.length === parsed.length);
+        console.assert(parsed[0] instanceof result[0]);
         if(result.length !== parsed.length || !(parsed[0] instanceof result[0])) {
             console.log({test, result, parsed, 'result[0]': result[0], 'parsed[0]': parsed[0], 'instanceof': parsed[0] instanceof result[0]});
             continue;
@@ -240,14 +250,16 @@ testParser(
     {test: 'element', result: [TagSelector]},
     {test: ':empty', result: [PseudoSelector]},
     {test: ':enabled', result: [PseudoSelector]},
-    {test: ':eq(1)', result: [PseudoFunction1ArgSelector]},
+    {test: ':nth-last-child(3n+1)', result: [PseudoFunction1ArgEquationSelector]},
+    {test: ':eq(1)', result: [PseudoFunction1ArgEquationSelector]},
+    {test: ':eq(1)', result: [PseudoFunction1ArgEquationSelector]},
     {test: ':even', result: [PseudoSelector]},
     {test: ':file', result: [PseudoSelector]},
     {test: ':first-child', result: [PseudoSelector]},
     {test: ':first-of-type', result: [PseudoSelector]},
     {test: ':first', result: [PseudoSelector]},
     {test: ':focus', result: [PseudoSelector]},
-    {test: ':gt(1)', result: [PseudoFunction1ArgSelector]},
+    {test: ':gt(1)', result: [PseudoFunction1ArgEquationSelector]},
     {test: '[name]', result: [AttributeSelector]},
     //{test: ':has(body>svg)', result: [AllSelector]},//jQuery Extension, nested selector
     {test: ':header', result: [PseudoSelector]},
@@ -259,16 +271,16 @@ testParser(
     {test: ':last-child', result: [PseudoSelector]},
     {test: ':last-of-type', result: [PseudoSelector]},
     {test: ':last', result: [PseudoSelector]},
-    {test: ':lt(1)', result: [PseudoFunction1ArgSelector]},
+    {test: ':lt(1)', result: [PseudoFunction1ArgEquationSelector]},
     {test: '[name="value"][name2="value2"]', result: [AttributeEqualsSelector,AttributeEqualsSelector]},
     {test: 'selector1, selector2, selectorN', result: [TagSelector,MultipleSelector,TagSelector,MultipleSelector,TagSelector]},
     {test: 'prev + next', result: [TagSelector,NextAdjacentSelector,TagSelector]},
     {test: 'prev ~ siblings', result: [TagSelector,NextSiblingsSelector,TagSelector]},
     //{test: ':not(div>a:not(a:empty))', result: [PseudoFunction1ArgSelector]},//nested selector
-    {test: ':nth-child(4n)', result: [PseudoFunction1ArgSelector]},
-    {test: ':nth-last-child(3)', result: [PseudoFunction1ArgSelector]},
-    {test: ':nth-last-of-type(2)', result: [PseudoFunction1ArgSelector]},
-    {test: ':nth-of-type(1)', result: [PseudoFunction1ArgSelector]},
+    {test: ':nth-child(4n)', result: [PseudoFunction1ArgEquationSelector]},
+    {test: ':nth-last-child(3)', result: [PseudoFunction1ArgEquationSelector]},
+    {test: ':nth-last-of-type(2)', result: [PseudoFunction1ArgEquationSelector]},
+    {test: ':nth-of-type(1)', result: [PseudoFunction1ArgEquationSelector]},
     {test: ':odd', result: [PseudoSelector]},
     {test: ':only-child', result: [PseudoSelector]},
     {test: ':only-of-type', result: [PseudoSelector]},
