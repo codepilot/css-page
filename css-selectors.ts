@@ -12,8 +12,11 @@ export class Selector extends String {
     exec(str:string): RegExpExecArray | null {
         return this.regex.exec(str);
     }
-    execFirst(str:string): string | undefined {
-        return this.exec(str)?.[0];
+    execFirst(str:string): string {
+        const execFirstResult = this.exec(str)?.[0];
+        console.assert(execFirstResult !== undefined, {execFirstResult});
+        if(execFirstResult === undefined) throw new TypeError('execFirstResult may not be undefined');
+        return execFirstResult;
     }
     create(str:string): Selector {
         const creator: FunctionConstructor = this.constructor as FunctionConstructor;
@@ -167,41 +170,46 @@ export const listOfSelectors:Array<typeof Selector> = [
     IdSelector, ClassSelector,
     AttributeSelector, AttributeEqualsSelector, AttributeNotEqualsSelector, AttributePrefixSelector, AttributeContainsSelector, AttributeContainsWordSelector, AttributeEndsWithSelector, AttributeStartsWithSelector,
     MultipleSelector,
-    PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, PseudoElement];
+    PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, PseudoElement,
+];
 
-export function parseSelector(selector:string) {
+interface SelectorInfo { curSelectorClass: typeof Selector; curSelector: Selector; tagResult: string; remainingStringReplacement: string; };
+
+function tryAllSelectors(remainingString: string): SelectorInfo {
+    for(const curSelectorClass of listOfSelectors) {
+        const curSelector = new curSelectorClass;
+        if(curSelector.test(remainingString)) {
+            const tagResult = curSelector.execFirst(remainingString);
+            const remainingStringReplacement = remainingString.slice(tagResult.length);
+            return {
+                curSelectorClass,
+                curSelector,
+                tagResult,
+                remainingStringReplacement,
+            };
+    }
+    }
+    throw(new Error(`remainingString: ${JSON.stringify(remainingString)}`));
+}
+
+export function parseSelector(selector:string): Array<Selector> {
     const ret:Array<Selector> = [];
-    let pos = 0;
     let remainingString = selector;
     while(remainingString.length) {
-        let foundMatch = false;
-        for(const curSelectorClass of listOfSelectors) {
-            const curSelector = new curSelectorClass;
-            if(curSelector.test(remainingString)) {
-                foundMatch = true;
-                const tagResult = curSelector.execFirst(remainingString);
-                remainingString = remainingString.slice(tagResult?.length);
-                if(curSelectorClass === DescendantSelector && (ret.length === 0 || ret[ret.length - 1] instanceof MultipleSelector)) {
-                    break;
-                } else {
-                    ret.push(curSelector.create(tagResult || ''));
-                }
-                break;
-            }
-        }
-        if(!foundMatch) {
-            console.log({ret});
-            throw(new Error(`remainingString: ${JSON.stringify(remainingString)}`));
+        const { curSelectorClass, curSelector, tagResult, remainingStringReplacement } = tryAllSelectors(remainingString);
+        remainingString = remainingStringReplacement;
+        if(curSelectorClass === DescendantSelector && (ret.length === 0 || ret[ret.length - 1] instanceof MultipleSelector)) {
+        } else {
+            ret.push(curSelector.create(tagResult || ''));
         }
     }
 
     //console.log({ret});
     return ret;
 }
-
 parseSelector('body>svg');
 
-function testParser(...tests: Array<{test: string, result: Array<any>}>) {
+function testParser(...tests: Array<{test: string, result: Array<any>}>): void {
     for(const {test, result} of tests) {
         const parsed = parseSelector(test);
         if(result.length !== parsed.length || !(parsed[0] instanceof result[0])) {

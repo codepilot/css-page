@@ -107,6 +107,7 @@ function CssToHtml() {
                             }
                         });
                         //console.log({previousSelector, newElement});
+                        console.assert(previousSelector !== undefined, { previousSelector });
                         selected = Array.from(previousSelector, (psN) => psN.appendChild(document.importNode(newElement, true)));
                     }
                 }

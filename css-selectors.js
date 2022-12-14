@@ -13,7 +13,11 @@ export class Selector extends String {
         return this.regex.exec(str);
     }
     execFirst(str) {
-        return this.exec(str)?.[0];
+        const execFirstResult = this.exec(str)?.[0];
+        console.assert(execFirstResult !== undefined, { execFirstResult });
+        if (execFirstResult === undefined)
+            throw new TypeError('execFirstResult may not be undefined');
+        return execFirstResult;
     }
     create(str) {
         const creator = this.constructor;
@@ -142,32 +146,35 @@ export const listOfSelectors = [
     IdSelector, ClassSelector,
     AttributeSelector, AttributeEqualsSelector, AttributeNotEqualsSelector, AttributePrefixSelector, AttributeContainsSelector, AttributeContainsWordSelector, AttributeEndsWithSelector, AttributeStartsWithSelector,
     MultipleSelector,
-    PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, PseudoElement
+    PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, PseudoElement,
 ];
+;
+function tryAllSelectors(remainingString) {
+    for (const curSelectorClass of listOfSelectors) {
+        const curSelector = new curSelectorClass;
+        if (curSelector.test(remainingString)) {
+            const tagResult = curSelector.execFirst(remainingString);
+            const remainingStringReplacement = remainingString.slice(tagResult.length);
+            return {
+                curSelectorClass,
+                curSelector,
+                tagResult,
+                remainingStringReplacement,
+            };
+        }
+    }
+    throw (new Error(`remainingString: ${JSON.stringify(remainingString)}`));
+}
 export function parseSelector(selector) {
     const ret = [];
-    let pos = 0;
     let remainingString = selector;
     while (remainingString.length) {
-        let foundMatch = false;
-        for (const curSelectorClass of listOfSelectors) {
-            const curSelector = new curSelectorClass;
-            if (curSelector.test(remainingString)) {
-                foundMatch = true;
-                const tagResult = curSelector.execFirst(remainingString);
-                remainingString = remainingString.slice(tagResult?.length);
-                if (curSelectorClass === DescendantSelector && (ret.length === 0 || ret[ret.length - 1] instanceof MultipleSelector)) {
-                    break;
-                }
-                else {
-                    ret.push(curSelector.create(tagResult || ''));
-                }
-                break;
-            }
+        const { curSelectorClass, curSelector, tagResult, remainingStringReplacement } = tryAllSelectors(remainingString);
+        remainingString = remainingStringReplacement;
+        if (curSelectorClass === DescendantSelector && (ret.length === 0 || ret[ret.length - 1] instanceof MultipleSelector)) {
         }
-        if (!foundMatch) {
-            console.log({ ret });
-            throw (new Error(`remainingString: ${JSON.stringify(remainingString)}`));
+        else {
+            ret.push(curSelector.create(tagResult || ''));
         }
     }
     //console.log({ret});
