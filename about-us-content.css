@@ -1,0 +1,8 @@
+@import url(general-layout.css);
+@import url(header.css);
+@import url(footer.css);
+@import url(search-bar.css);
+
+.main>div#content {
+  content: 'about us page';
+}

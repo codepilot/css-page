@@ -126,6 +126,9 @@ function reduce_groupParseSelector(textContent, previousSelector, selector, si, 
     return append_to_previousSelector(selector, previousSelector, textContentn);
 }
 function for_each_cssRule(cssRule, _cssRuleIndex) {
+    if (cssRule instanceof CSSImportRule) {
+        return for_each_styleSheet(cssRule.styleSheet, 0);
+    }
     const textContent = (cssRule.style.content.length) ? JSON.parse(cssRule.style.content) : undefined;
     groupParseSelector(cssRule.selectorText).reduce(reduce_groupParseSelector.bind(null, textContent), new Array());
 }

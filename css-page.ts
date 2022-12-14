@@ -148,6 +148,9 @@ function reduce_groupParseSelector(textContent: string | undefined, previousSele
 }
 
 function for_each_cssRule(cssRule: CSSStyleRule, _cssRuleIndex: number): void {
+    if(cssRule instanceof CSSImportRule) {
+        return for_each_styleSheet(cssRule.styleSheet, 0);
+    }
     const textContent = (cssRule.style.content.length)?JSON.parse(cssRule.style.content):undefined;
     groupParseSelector(cssRule.selectorText).reduce(reduce_groupParseSelector.bind(null, textContent), new Array<Element>());
 }
