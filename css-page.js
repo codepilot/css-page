@@ -71,7 +71,7 @@ function safeQSA(selector) {
         return null;
     }
 }
-function make_missing_elements(selector) {
+function make_missing_elements(selector, textContent) {
     const firstSelector = selector.args.shift();
     if (firstSelector === undefined)
         throw new TypeError('firstSelector undefined');
@@ -79,6 +79,9 @@ function make_missing_elements(selector) {
         throw new TypeError(`!(firstSelector instanceof TagSelector)`);
     const firstElementalPart = firstSelector;
     const newElement = document.createElement(`${firstElementalPart}`);
+    if (textContent !== undefined) {
+        newElement.textContent = textContent;
+    }
     const newElements = [];
     for (const elementalPart of selector.args) {
         if (elementalPart instanceof IdSelector) {
@@ -129,48 +132,30 @@ function for_each_cssRule(cssRule, _cssRuleIndex) {
     const parsed = groupParseSelector(cssRule.selectorText);
     for (const [si, selector] of parsed.entries()) {
         const partialArray = parsed.slice(0, si + 1);
-        const partial = parsed.slice(0, si + 1).join('');
-        //try {
-        let selected = safeQSA(partial);
+        const partial = partialArray.join('');
+        const selected = safeQSA(partial);
         if (selected === null) {
             continue;
         }
-        if (selected.length === 0) {
-            //console.log('need to create', selector, 'in', previousSelector);
-            if (selector instanceof Elemental) {
-                if (previousSelector === undefined)
-                    throw new TypeError('creating an element requires previousSelector to be defined');
-                const missing_elements = make_missing_elements(selector);
-                const new_elements = [];
-                for (const psN of previousSelector) {
-                    const importedNodes = [];
-                    for (const missing_element of missing_elements) {
-                        const importedNode = document.importNode(missing_element, true);
-                        importedNodes.push(importedNode);
-                    }
-                    psN.append.apply(psN, importedNodes);
-                    new_elements.push.apply(new_elements, importedNodes);
-                }
-                // previousSelector.forEach((psN:Element)=> psN.append.apply(psN, missing_elements.map((missing_element)=> document.importNode(missing_element, true))));
-                selected = new_elements;
-            }
+        if (selected.length > 0) {
+            previousSelector = selected;
+            continue;
         }
-        else {
-            //console.log({selector, partialArray, partial, selected});                        
+        if (!(selector instanceof Elemental)) {
+            previousSelector = selected;
+            continue;
         }
-        previousSelector = selected;
-        // } catch( err ) {
-        //console.log('errA', err);
-        // }
-    }
-    try {
-        if (cssRule.style.content.length) {
-            //console.log('content', cssRule.style.content, previousSelector, cssRule.style);
-            previousSelector?.forEach((psN) => psN.innerHTML = JSON.parse(cssRule.style.content));
+        if (previousSelector === undefined)
+            throw new TypeError('creating an element requires previousSelector to be defined');
+        const textContent = ((si + 1) === parsed.length && cssRule.style.content.length) ? JSON.parse(cssRule.style.content) : undefined;
+        const missing_elements = make_missing_elements(selector, textContent);
+        let new_elements = [];
+        for (const psN of previousSelector) {
+            const frag = document.createDocumentFragment();
+            new_elements = new_elements.concat(missing_elements.map((missing_element) => frag.appendChild(document.importNode(missing_element, true))));
+            psN.append(frag);
         }
-    }
-    catch (err) {
-        //console.log('errB', err);
+        previousSelector = new_elements;
     }
 }
 function for_each_styleSheet(styleSheet, _styleSheetIndex) {

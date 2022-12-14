@@ -97,12 +97,17 @@ function safeQSA(selector:string):Element[] | null {
     }
 }
 
-function make_missing_elements(selector: Elemental): Array<HTMLElement> {
+function make_missing_elements(selector: Elemental, textContent?: string): Array<HTMLElement> {
     const firstSelector = selector.args.shift();
     if(firstSelector === undefined) throw new TypeError('firstSelector undefined');
     if(!(firstSelector instanceof TagSelector)) throw new TypeError(`!(firstSelector instanceof TagSelector)`);
     const firstElementalPart: TagSelector = firstSelector;
     const newElement: HTMLElement = document.createElement(`${firstElementalPart}`);
+
+    if(textContent !== undefined) {
+        newElement.textContent = textContent;
+    }
+
     const newElements = [];
     for(const elementalPart of selector.args) {
         if(elementalPart instanceof IdSelector) {
@@ -159,44 +164,30 @@ function for_each_cssRule(cssRule: CSSStyleRule, _cssRuleIndex: number): void {
     const parsed = groupParseSelector(cssRule.selectorText);
     for(const [si, selector] of parsed.entries()) {
         const partialArray = parsed.slice(0, si + 1);
-        const partial = parsed.slice(0, si + 1).join('');
-        //try {
-            let selected = safeQSA(partial);
-            if(selected === null) { continue; }
-            if(selected.length === 0) {
-                //console.log('need to create', selector, 'in', previousSelector);
-                if(selector instanceof Elemental) {
-                    if(previousSelector === undefined) throw new TypeError('creating an element requires previousSelector to be defined');
-                    const missing_elements = make_missing_elements(selector);
-                    const new_elements: Array<HTMLElement> = [];
-                    for(const psN of previousSelector) {
-                        const importedNodes = [];
-                        for(const missing_element of missing_elements) {
-                            const importedNode = document.importNode(missing_element, true);
-                            importedNodes.push(importedNode);
-                        }
-                        psN.append.apply(psN, importedNodes);
-                        new_elements.push.apply(new_elements, importedNodes);
-                    }
-                    // previousSelector.forEach((psN:Element)=> psN.append.apply(psN, missing_elements.map((missing_element)=> document.importNode(missing_element, true))));
-                    selected = new_elements;
-                }
-            } else {
-                //console.log({selector, partialArray, partial, selected});                        
-            }
-            previousSelector = selected;
-       // } catch( err ) {
-            //console.log('errA', err);
-       // }
-    }
-
-    try {
-        if(cssRule.style.content.length) {
-            //console.log('content', cssRule.style.content, previousSelector, cssRule.style);
-            previousSelector?.forEach((psN:Element) => psN.innerHTML = JSON.parse(cssRule.style.content));
+        const partial = partialArray.join('');
+        const selected = safeQSA(partial);
+        if(selected === null) {
+            continue;
         }
-    } catch(err) {
-        //console.log('errB', err);
+        if(selected.length > 0) {
+            previousSelector = selected;
+            continue;
+        }
+        if(!(selector instanceof Elemental)) {
+            previousSelector = selected;
+            continue;
+        }
+
+        if(previousSelector === undefined) throw new TypeError('creating an element requires previousSelector to be defined');
+        const textContent = ((si + 1) === parsed.length && cssRule.style.content.length)?JSON.parse(cssRule.style.content):undefined;
+        const missing_elements = make_missing_elements(selector, textContent);
+        let new_elements: Array<HTMLElement> = [];
+        for(const psN of previousSelector) {
+            const frag = document.createDocumentFragment();
+            new_elements = new_elements.concat(missing_elements.map((missing_element)=> frag.appendChild(document.importNode(missing_element, true))));
+            psN.append(frag);
+        }
+        previousSelector = new_elements;
     }
 }
 
