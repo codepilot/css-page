@@ -1,7 +1,6 @@
-'use strict';
-
+import { AllSelector, AttributeContainsSelector, AttributeContainsWordSelector, AttributeEndsWithSelector, AttributeEqualsSelector, AttributeNotEqualsSelector, AttributePrefixSelector, AttributeSelector, AttributeStartsWithSelector, ChildSelector, ClassSelector, DescendantSelector, IdSelector, MultipleSelector, NextAdjacentSelector, NextSiblingsSelector, parseSelector, PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, TagSelector, } from './css-selectors.js';
 function getKindOfSelector(selector) {
-    switch(true) {
+    switch (true) {
         case selector instanceof ChildSelector:
         case selector instanceof AllSelector:
         case selector instanceof DescendantSelector:
@@ -9,7 +8,6 @@ function getKindOfSelector(selector) {
         case selector instanceof NextSiblingsSelector:
         case selector instanceof MultipleSelector:
             return 'relationship';
-
         case selector instanceof TagSelector:
         case selector instanceof IdSelector:
         case selector instanceof ClassSelector:
@@ -26,25 +24,29 @@ function getKindOfSelector(selector) {
         case selector instanceof AttributeEndsWithSelector:
         case selector instanceof AttributeStartsWithSelector:
             return 'elemental';
-    }    
+        default:
+            throw new TypeError(`selector ${selector.constructor.name} unknown`);
+    }
 }
-
 class Elemental extends String {
+    args;
     constructor(...args) {
         super(args.join(''));
         this.args = args;
     }
 }
-
 function groupParseSelector(selectorText) {
     const ret = [];
     let elemental = [];
-    parseSelector(selectorText).forEach((selector, si, parsed) => {
+    parseSelector(selectorText).forEach((selector, _si, _parsed) => {
         const kind = getKindOfSelector(selector);
         //console.log(kind, selector);
-        switch(kind) {
+        switch (kind) {
             case 'relationship':
-                if(elemental.length) { ret.push(new Elemental(...elemental)); elemental = []; }
+                if (elemental.length) {
+                    ret.push(new Elemental(...elemental));
+                    elemental = [];
+                }
                 ret.push(selector);
                 break;
             case 'elemental':
@@ -52,81 +54,85 @@ function groupParseSelector(selectorText) {
                 break;
         }
     });
-    if(elemental.length) { ret.push(new Elemental(...elemental)); elemental = []; }
+    if (elemental.length) {
+        ret.push(new Elemental(...elemental));
+        elemental = [];
+    }
     return ret;
 }
-
 //console.log(groupParseSelector('body>div.test1>span.redText'));
-
 //    return;
-
 function safeQSA(selector) {
-    try{
-        return document.querySelectorAll(selector);
-    } catch(err) {
+    try {
+        return Array.from(document.querySelectorAll(selector));
+    }
+    catch (err) {
         return null;
     }
 }
-
 function CssToHtml() {
     //console.log('loaded');
-    Array.prototype.forEach.call(document.styleSheets, (styleSheet, styleSheetIndex)=> {
-        Array.prototype.forEach.call(styleSheet.cssRules, (cssRule, cssRuleIndex)=> {
+    Array.prototype.forEach.call(document.styleSheets, (styleSheet, _styleSheetIndex) => {
+        Array.prototype.forEach.call(styleSheet.cssRules, (cssRule, _cssRuleIndex) => {
             let previousSelector;
             groupParseSelector(cssRule.selectorText).forEach((selector, si, parsed) => {
                 const partialArray = parsed.slice(0, si + 1);
                 const partial = parsed.slice(0, si + 1).join('');
                 //try {
-                    let selected = safeQSA(partial);
-                    if(null === selected) { return; }
-                    if(selected.length === 0) {
-                        //console.log('need to create', selector, 'in', previousSelector);
-                        if(selector instanceof Elemental) {
-                            //console.log('elemental selector', selector);
-                            let newElement;
-                            selector.args.forEach((elementalPart) => {
-                                switch(true) {
-                                    case elementalPart instanceof TagSelector:
-                                        newElement = document.createElement(`${elementalPart}`);
-                                        //selected = newElement;
-                                        break;
-                                    case elementalPart instanceof IdSelector:
-                                        newElement.id = elementalPart.slice(1);
-                                        break;                                    
-                                    case elementalPart instanceof ClassSelector:
-                                        newElement.classList.add(elementalPart.slice(1));
-                                        break;
-                                    case elementalPart instanceof AttributeEqualsSelector:
-                                        newElement.setAttribute(elementalPart.executed[1], elementalPart.executed[2]);
-                                        break;
-                                    default:
-                                        console.log('unhandled', elementalPart);
-                                }
-                            });
-                            //console.log({previousSelector, newElement});
-                            selected = Array.prototype.map.call(previousSelector, (psN)=> psN.appendChild(document.importNode(newElement, true)));
-                        }
-                    } else {
-                        //console.log({selector, partialArray, partial, selected});                        
+                let selected = safeQSA(partial);
+                if (selected === null) {
+                    return;
+                }
+                if (selected.length === 0) {
+                    //console.log('need to create', selector, 'in', previousSelector);
+                    if (selector instanceof Elemental) {
+                        //console.log('elemental selector', selector);
+                        let newElement;
+                        selector.args.forEach((elementalPart) => {
+                            if (elementalPart instanceof TagSelector) {
+                                newElement = document.createElement(`${elementalPart}`);
+                                //selected = newElement;
+                            }
+                            else if (elementalPart instanceof IdSelector) {
+                                newElement.id = elementalPart.slice(1);
+                            }
+                            else if (elementalPart instanceof ClassSelector) {
+                                newElement.classList.add(elementalPart.slice(1));
+                            }
+                            else if (elementalPart instanceof AttributeEqualsSelector) {
+                                newElement.setAttribute(elementalPart.executed[1], elementalPart.executed[2]);
+                            }
+                            else {
+                                console.log('unhandled', elementalPart);
+                            }
+                        });
+                        //console.log({previousSelector, newElement});
+                        selected = Array.from(previousSelector, (psN) => psN.appendChild(document.importNode(newElement, true)));
                     }
-                    previousSelector = selected;
-               // } catch( err ) {
-                    //console.log('errA', err);
-               // }
+                }
+                else {
+                    //console.log({selector, partialArray, partial, selected});                        
+                }
+                previousSelector = selected;
+                // } catch( err ) {
+                //console.log('errA', err);
+                // }
             });
             try {
-                if(cssRule.style.content.length) {
+                if (cssRule.style.content.length) {
                     //console.log('content', cssRule.style.content, previousSelector, cssRule.style);
-                    Array.prototype.forEach.call(previousSelector, (psN)=>psN.innerHTML = JSON.parse(cssRule.style.content));
+                    if (previousSelector) {
+                        previousSelector.forEach((psN) => psN.innerHTML = JSON.parse(cssRule.style.content));
+                    }
                 }
-            } catch(err) {
+            }
+            catch (err) {
                 //console.log('errB', err);
             }
-        })
+        });
     });
 }
-
 /* document.addEventListener("DOMContentLoaded", CssToHtml); */
-
 //window load is better event for lack of problems with displaying
 window.addEventListener("load", CssToHtml);
+//# sourceMappingURL=css-page.js.map
