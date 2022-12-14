@@ -1,4 +1,5 @@
 export class Selector extends String {
+    get kind(): string { throw new TypeError('kind not available'); }
     constructor(str?:string) {
         super(str);
     }
@@ -32,140 +33,148 @@ export class ExecutedSelector extends Selector {
     }
 }
 
-export class ChildSelector extends Selector {
+export class RelationshipSelector extends Selector {
+    override get kind() { return 'relationship'; }
+} 
+
+export class ChildSelector extends RelationshipSelector {
     override get regex() {
         return /^\s*\>\s*/;
     }
 } 
 
-export class AllSelector extends Selector {
+export class AllSelector extends RelationshipSelector {
     override get regex() {
         return /^\*/;
     }
 } 
 
 
-export class DescendantSelector extends Selector {
+export class DescendantSelector extends RelationshipSelector {
     override get regex() {
         return /^\s+/;
     }
 } 
 
-export class NextAdjacentSelector extends Selector {
+export class NextAdjacentSelector extends RelationshipSelector {
     override get regex() {
         return /^\s*\+\s*/;
     }
 } 
 
-export class NextSiblingsSelector extends Selector {
+export class NextSiblingsSelector extends RelationshipSelector {
     override get regex() {
         return /^\s*\~\s*/;
     }
 } 
 
-export class MultipleSelector extends Selector {
+export class MultipleSelector extends RelationshipSelector {
     override get regex() {
         return /^,/;
     }
 } 
 
-export class TagSelector extends ExecutedSelector {
+export class ElementalSelector extends ExecutedSelector {
+    override get kind() { return 'elemental'; }
+}
+
+export class TagSelector extends ElementalSelector {
     override get regex() {
         return /^([A-Za-z][A-Za-z0-9]*)/;
     }
 }
 
-export class IdSelector extends ExecutedSelector {
+export class IdSelector extends ElementalSelector {
     override get regex() {
         return /^#([A-Za-z][A-Za-z0-9]*)/;
     }
 }
 
-export class ClassSelector extends ExecutedSelector {
+export class ClassSelector extends ElementalSelector {
     override get regex() {
         return /^\.([A-Za-z][A-Za-z0-9]*)/;
     }
 }
 
-export class PseudoSelector extends ExecutedSelector {
+export class PseudoSelector extends ElementalSelector {
     override get regex() {
         return /^\:([A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)/;
     }
 }
 
-export class PseudoElement extends ExecutedSelector {
+export class PseudoElement extends ElementalSelector {
     override get regex() {
         return /^\:\:([A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)/;
     }
 }
 
-export class PseudoFunctionSelector extends ExecutedSelector {
+export class PseudoFunctionSelector extends ElementalSelector {
     override get regex() {
         return /^\:([A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)\(\)/;
     }
 }
 
-export class PseudoFunction1ArgQuotedSelector extends ExecutedSelector {
+export class PseudoFunction1ArgQuotedSelector extends ElementalSelector {
     override get regex() {
         return /^\:([A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)\(\"([^"]*)\"\)/;
     }
 }
 
-export class PseudoFunction1ArgSelector extends ExecutedSelector {
+export class PseudoFunction1ArgSelector extends ElementalSelector {
     override get regex() {
         return /^\:(?<func>[A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)\((?<arg>[^)]+)\)/;
     }
 }
 
-export class PseudoFunction1ArgEquationSelector extends ExecutedSelector {
+export class PseudoFunction1ArgEquationSelector extends ElementalSelector {
     override get regex() {
         return /^\:(?<func>[A-Za-z][-A-Za-z0-9]*[A-Za-z0-9]+)\(((?<signedScalar>(?<scalarSign>[+-]?)(?<scalar>\d*))?(?<varname>[a-z]+)?(?<signedOffset>(?<offsetSign>[+-])(?<offset>\d*))?)\)/;
     }
 }
 
-export class AttributeSelector extends ExecutedSelector {
+export class AttributeSelector extends ElementalSelector {
     override get regex() {
         return /^\[([A-Za-z][A-Za-z0-9]*)]/;
     }
 }
 
-export class AttributeEqualsSelector extends ExecutedSelector {
+export class AttributeEqualsSelector extends ElementalSelector {
     override get regex() {
         return /^\[([A-Za-z][A-Za-z0-9]*)=\"([^"]*)\"\]/;
     }
 }
 
-export class AttributeNotEqualsSelector extends ExecutedSelector {
+export class AttributeNotEqualsSelector extends ElementalSelector {
     override get regex() {
         return /^\[([A-Za-z][A-Za-z0-9]*)\!=\"([^"]*)\"\]/;
     }
 }
 
-export class AttributePrefixSelector extends ExecutedSelector {
+export class AttributePrefixSelector extends ElementalSelector {
     override get regex() {
         return /^\[([A-Za-z][A-Za-z0-9]*)\|=\"([^"]*)\"\]/;
     }
 }
 
-export class AttributeContainsSelector extends ExecutedSelector {
+export class AttributeContainsSelector extends ElementalSelector {
     override get regex() {
         return /^\[([A-Za-z][A-Za-z0-9]*)\*=\"([^"]*)\"\]/;
     }
 }
 
-export class AttributeContainsWordSelector extends ExecutedSelector {
+export class AttributeContainsWordSelector extends ElementalSelector {
     override get regex() {
         return /^\[([A-Za-z][A-Za-z0-9]*)\~=\"([^"]*)\"\]/;
     }
 }
 
-export class AttributeEndsWithSelector extends ExecutedSelector {
+export class AttributeEndsWithSelector extends ElementalSelector {
     override get regex() {
         return /^\[([A-Za-z][A-Za-z0-9]*)\$=\"([^"]*)\"\]/;
     }
 }
 
-export class AttributeStartsWithSelector extends ExecutedSelector {
+export class AttributeStartsWithSelector extends ElementalSelector {
     override get regex() {
         return /^\[([A-Za-z][A-Za-z0-9]*)\^=\"([^"]*)\"\]/;
     }

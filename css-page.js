@@ -1,34 +1,4 @@
-import { AllSelector, AttributeContainsSelector, AttributeContainsWordSelector, AttributeEndsWithSelector, AttributeEqualsSelector, AttributeNotEqualsSelector, AttributePrefixSelector, AttributeSelector, AttributeStartsWithSelector, ChildSelector, ClassSelector, DescendantSelector, IdSelector, MultipleSelector, NextAdjacentSelector, NextSiblingsSelector, parseSelector, PseudoFunction1ArgQuotedSelector, PseudoFunction1ArgEquationSelector, PseudoFunction1ArgSelector, PseudoFunctionSelector, PseudoSelector, TagSelector, } from './css-selectors.js';
-function getKindOfSelector(selector) {
-    switch (true) {
-        case selector instanceof ChildSelector:
-        case selector instanceof AllSelector:
-        case selector instanceof DescendantSelector:
-        case selector instanceof NextAdjacentSelector:
-        case selector instanceof NextSiblingsSelector:
-        case selector instanceof MultipleSelector:
-            return 'relationship';
-        case selector instanceof TagSelector:
-        case selector instanceof IdSelector:
-        case selector instanceof ClassSelector:
-        case selector instanceof PseudoSelector:
-        case selector instanceof PseudoFunctionSelector:
-        case selector instanceof PseudoFunction1ArgQuotedSelector:
-        case selector instanceof PseudoFunction1ArgEquationSelector:
-        case selector instanceof PseudoFunction1ArgSelector:
-        case selector instanceof AttributeSelector:
-        case selector instanceof AttributeEqualsSelector:
-        case selector instanceof AttributeNotEqualsSelector:
-        case selector instanceof AttributePrefixSelector:
-        case selector instanceof AttributeContainsSelector:
-        case selector instanceof AttributeContainsWordSelector:
-        case selector instanceof AttributeEndsWithSelector:
-        case selector instanceof AttributeStartsWithSelector:
-            return 'elemental';
-        default:
-            throw new TypeError(`selector ${selector.constructor.name} unknown`);
-    }
-}
+import { AttributeEqualsSelector, ClassSelector, IdSelector, parseSelector, PseudoFunction1ArgEquationSelector, PseudoFunction1ArgSelector, TagSelector, } from './css-selectors.js';
 class Elemental extends String {
     args;
     constructor(...args) {
@@ -36,33 +6,31 @@ class Elemental extends String {
         this.args = args;
     }
 }
+function reduce_parseSelector({ ret, elemental }, selector, _si, _parsed) {
+    switch (selector.kind) {
+        case 'relationship':
+            if (elemental.length) {
+                ret.push(new Elemental(...elemental));
+                elemental = [];
+            }
+            ret.push(selector);
+            break;
+        case 'elemental':
+            elemental.push(selector);
+            break;
+    }
+    return { ret, elemental };
+}
 function groupParseSelector(selectorText) {
-    const ret = [];
-    let elemental = [];
-    parseSelector(selectorText).forEach((selector, _si, _parsed) => {
-        const kind = getKindOfSelector(selector);
-        //console.log(kind, selector);
-        switch (kind) {
-            case 'relationship':
-                if (elemental.length) {
-                    ret.push(new Elemental(...elemental));
-                    elemental = [];
-                }
-                ret.push(selector);
-                break;
-            case 'elemental':
-                elemental.push(selector);
-                break;
-        }
+    const { ret, elemental } = parseSelector(selectorText).reduce(reduce_parseSelector, {
+        ret: new Array(),
+        elemental: new Array(),
     });
     if (elemental.length) {
         ret.push(new Elemental(...elemental));
-        elemental = [];
     }
     return ret;
 }
-//console.log(groupParseSelector('body>div.test1>span.redText'));
-//    return;
 function safeQSA(selector) {
     try {
         return Array.from(document.querySelectorAll(selector));
@@ -127,16 +95,17 @@ function make_missing_elements(selector, textContent) {
     }
     return newElements.length > 0 ? newElements : [newElement];
 }
+function flatMap_previousSelector(frag, psN) {
+    const curFrag = frag.cloneNode(true);
+    const kids = Array.from(curFrag.children);
+    psN.append(curFrag);
+    return kids;
+}
 function append_to_previousSelector(selector, previousSelector, textContent) {
     const missing_elements = make_missing_elements(selector, textContent);
     const frag = document.createDocumentFragment();
     missing_elements.map((missing_element) => frag.appendChild(document.importNode(missing_element, true)));
-    return previousSelector.flatMap((psN) => {
-        const curFrag = frag.cloneNode(true);
-        const kids = Array.from(curFrag.children);
-        psN.append(curFrag);
-        return kids;
-    });
+    return previousSelector.flatMap(flatMap_previousSelector.bind(null, frag));
 }
 function reduce_groupParseSelector(textContent, previousSelector, selector, si, parsed) {
     const partialArray = parsed.slice(0, si + 1);
