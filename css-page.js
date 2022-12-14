@@ -127,37 +127,38 @@ function make_missing_elements(selector, textContent) {
     }
     return newElements.length > 0 ? newElements : [newElement];
 }
-function for_each_cssRule(cssRule, _cssRuleIndex) {
-    let previousSelector;
-    const parsed = groupParseSelector(cssRule.selectorText);
-    for (const [si, selector] of parsed.entries()) {
-        const partialArray = parsed.slice(0, si + 1);
-        const partial = partialArray.join('');
-        const selected = safeQSA(partial);
-        if (selected === null) {
-            continue;
-        }
-        if (selected.length > 0) {
-            previousSelector = selected;
-            continue;
-        }
-        if (!(selector instanceof Elemental)) {
-            previousSelector = selected;
-            continue;
-        }
-        if (previousSelector === undefined)
-            throw new TypeError('creating an element requires previousSelector to be defined');
-        const textContent = ((si + 1) === parsed.length && cssRule.style.content.length) ? JSON.parse(cssRule.style.content) : undefined;
-        const missing_elements = make_missing_elements(selector, textContent);
-        const frag = document.createDocumentFragment();
-        missing_elements.map((missing_element) => frag.appendChild(document.importNode(missing_element, true)));
-        previousSelector = previousSelector.flatMap((psN) => {
-            const curFrag = frag.cloneNode(true);
-            const kids = Array.from(curFrag.children);
-            psN.append(curFrag);
-            return kids;
-        });
+function append_to_previousSelector(selector, previousSelector, textContent) {
+    const missing_elements = make_missing_elements(selector, textContent);
+    const frag = document.createDocumentFragment();
+    missing_elements.map((missing_element) => frag.appendChild(document.importNode(missing_element, true)));
+    return previousSelector.flatMap((psN) => {
+        const curFrag = frag.cloneNode(true);
+        const kids = Array.from(curFrag.children);
+        psN.append(curFrag);
+        return kids;
+    });
+}
+function reduce_groupParseSelector(textContent, previousSelector, selector, si, parsed) {
+    const partialArray = parsed.slice(0, si + 1);
+    const partial = partialArray.join('');
+    const selected = safeQSA(partial);
+    if (selected === null) {
+        return previousSelector;
     }
+    if (selected.length > 0) {
+        return selected;
+    }
+    if (!(selector instanceof Elemental)) {
+        return selected;
+    }
+    if (previousSelector === undefined)
+        throw new TypeError('creating an element requires previousSelector to be defined');
+    const textContentn = ((si + 1) === parsed.length) ? textContent : undefined;
+    return append_to_previousSelector(selector, previousSelector, textContentn);
+}
+function for_each_cssRule(cssRule, _cssRuleIndex) {
+    const textContent = (cssRule.style.content.length) ? JSON.parse(cssRule.style.content) : undefined;
+    groupParseSelector(cssRule.selectorText).reduce(reduce_groupParseSelector.bind(null, textContent), new Array());
 }
 function for_each_styleSheet(styleSheet, _styleSheetIndex) {
     Array.prototype.forEach.call(styleSheet.cssRules, for_each_cssRule);
