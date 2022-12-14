@@ -181,13 +181,16 @@ function for_each_cssRule(cssRule: CSSStyleRule, _cssRuleIndex: number): void {
         if(previousSelector === undefined) throw new TypeError('creating an element requires previousSelector to be defined');
         const textContent = ((si + 1) === parsed.length && cssRule.style.content.length)?JSON.parse(cssRule.style.content):undefined;
         const missing_elements = make_missing_elements(selector, textContent);
-        let new_elements: Array<HTMLElement> = [];
-        for(const psN of previousSelector) {
-            const frag = document.createDocumentFragment();
-            new_elements = new_elements.concat(missing_elements.map((missing_element)=> frag.appendChild(document.importNode(missing_element, true))));
-            psN.append(frag);
-        }
-        previousSelector = new_elements;
+        const frag = document.createDocumentFragment();
+        missing_elements.map((missing_element: HTMLElement)=> frag.appendChild(document.importNode(missing_element, true)));
+
+        previousSelector = previousSelector.flatMap((psN: Element) => {
+            const curFrag: DocumentFragment = frag.cloneNode(true) as DocumentFragment;
+            const kids = Array.from(curFrag.children);
+            psN.append(curFrag);
+            return kids;
+        });
+
     }
 }
 

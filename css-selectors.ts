@@ -229,7 +229,7 @@ function testParser(...tests: Array<{test: string, result: Array<any>}>): void {
     }
 }
 
-testParser(
+if(false) testParser(
     {test: '*', result: [AllSelector]},
     {test: ':animated', result: [PseudoSelector]},
     {test: '[name|="value"]', result: [AttributePrefixSelector]},
