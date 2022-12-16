@@ -134,49 +134,49 @@ export class PseudoFunction1ArgEquationSelector extends ElementalSelector {
 
 export class AttributeSelector extends ElementalSelector {
     override get regex() {
-        return /^\[([A-Za-z][A-Za-z0-9]*)]/;
+        return /^\[([A-Za-z][-A-Za-z0-9]*)]/;
     }
 }
 
 export class AttributeEqualsSelector extends ElementalSelector {
     override get regex() {
-        return /^\[([A-Za-z][A-Za-z0-9]*)=\"([^"]*)\"\]/;
+        return /^\[([A-Za-z][-A-Za-z0-9]*)=\"([^"]*)\"\]/;
     }
 }
 
 export class AttributeNotEqualsSelector extends ElementalSelector {
     override get regex() {
-        return /^\[([A-Za-z][A-Za-z0-9]*)\!=\"([^"]*)\"\]/;
+        return /^\[([A-Za-z][-A-Za-z0-9]*)\!=\"([^"]*)\"\]/;
     }
 }
 
 export class AttributePrefixSelector extends ElementalSelector {
     override get regex() {
-        return /^\[([A-Za-z][A-Za-z0-9]*)\|=\"([^"]*)\"\]/;
+        return /^\[([A-Za-z][-A-Za-z0-9]*)\|=\"([^"]*)\"\]/;
     }
 }
 
 export class AttributeContainsSelector extends ElementalSelector {
     override get regex() {
-        return /^\[([A-Za-z][A-Za-z0-9]*)\*=\"([^"]*)\"\]/;
+        return /^\[([A-Za-z][-A-Za-z0-9]*)\*=\"([^"]*)\"\]/;
     }
 }
 
 export class AttributeContainsWordSelector extends ElementalSelector {
     override get regex() {
-        return /^\[([A-Za-z][A-Za-z0-9]*)\~=\"([^"]*)\"\]/;
+        return /^\[([A-Za-z][-A-Za-z0-9]*)\~=\"([^"]*)\"\]/;
     }
 }
 
 export class AttributeEndsWithSelector extends ElementalSelector {
     override get regex() {
-        return /^\[([A-Za-z][A-Za-z0-9]*)\$=\"([^"]*)\"\]/;
+        return /^\[([A-Za-z][-A-Za-z0-9]*)\$=\"([^"]*)\"\]/;
     }
 }
 
 export class AttributeStartsWithSelector extends ElementalSelector {
     override get regex() {
-        return /^\[([A-Za-z][A-Za-z0-9]*)\^=\"([^"]*)\"\]/;
+        return /^\[([A-Za-z][-A-Za-z0-9]*)\^=\"([^"]*)\"\]/;
     }
 }
 
